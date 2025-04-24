@@ -25,34 +25,33 @@ import time
 # Uso de tratamento de exceção
 from selenium.common.exceptions import TimeoutException
 
-
-
-# Deninir o caminho do chromedriver
+# Caminho do ChromeDriver
 chromedriver_path = "C:\Program Files\chromedriver-win64\chromedriver.exe"
 
-# Configurar o WebDriver
-servico = Service(chromedriver_path) # Navegador controlado pelo Selenium
 
-# Configurar as opções do navegador
-controle = webdriver.ChromeOptions() 
-controle.add_argument("--disable-gpu") # Evita possíveis erros gráficos
-controle.add_argument("--window-size=1920,1080") # Define uma resolução fixa
+servico = Service(chromedriver_path)
+controle = webdriver.ChromeOptions()
 
-# Inicializar o WebDriver
+# Opções configuráveis
+controle.add_argument("--disable-gpu") 
+controle.add_argument("--window-size=1920,1080")
+
+# Configurando a variável que inicia o navegador
 executador = webdriver.Chrome(service= servico, options= controle)
 
-# URL inicial
-url_site= "https://www.kabum.com.br/espaco-gamer/cadeiras-gamer"
-executador.get(url_site)
-time.sleep(5) # Aguarda 5 seg para garantir que a página carregue corretamente
+url_site= "https://www.kabum.com.br/promocao/PERIFERICOSOFFICE"
 
-# Criar um dicionário para armazenar os marcas e o preços das cadeiras
-dict_produtos = {
+# Abre o site com base na URL
+executador.get(url_site)
+time.sleep(5)
+
+perifericos = {
         "Nome": [],
-        "Preco": []
+        "Preco": [],
+        "Pagamento": [],
+        "Frete": []
     }
 
-# Iniciando na página 1 e incrementamos o valor a cada troca de página
 pagina_atual = 1
 
 while True:
@@ -70,18 +69,24 @@ while True:
         try:
             nome = produto.find_element(By.CLASS_NAME, "nameCard").text.strip()
             preco = produto.find_element(By.CLASS_NAME, "priceCard").text.strip()
+            pagamento = produto.find_element(By.CLASS_NAME, "priceTextCard").text.strip()
+            try:
+                produto.find_element(By.CLASS_NAME, "bg-success-500")
+                frete = "grátis"
+            except:
+                frete = "pago"
 
-            print(f"{nome} / {preco}")
+            print(f"{nome} / {preco} / {pagamento} / {frete}")
 
-            dict_produtos["Nome"].append(nome)
-            dict_produtos["Preco"].append(preco)
+            perifericos["Nome"].append(nome)
+            perifericos["Preco"].append(preco)
+            perifericos["Pagamento"].append(pagamento)
+            perifericos["Frete"].append(frete)
 
         except Exception:
             print("Erro ao coletar dados:", Exception)
 
-    # Encontrar botão da próxima página
     try:
-        # Encontrar o elemento
         botao_proximo = WebDriverWait(executador, 5).until(
             ec.element_to_be_clickable((By.CLASS_NAME, "nextLink"))
         )
@@ -89,7 +94,6 @@ while True:
             executador.execute_script("arguments[0].scrollIntoView();", botao_proximo)
             time.sleep(5)
 
-            # Clicar no botão
             executador.execute_script("arguments[0].click();", botao_proximo)
             print(f"Indo para a página {pagina_atual}")
             pagina_atual += 1
@@ -101,18 +105,10 @@ while True:
         print("Erro! Falha ao tentar avançar para a próxima página...", e)
         break
 
-# Encerra o navegador
 executador.quit()
 
-# dataframe
-df_cadeiras = pd.DataFrame(dict_produtos)
+df_perifericos = pd.DataFrame(perifericos)
 
-# csv
-df_cadeiras.to_excel("cadeiras.xlsx", index=False)
+df_perifericos.to_excel("site_dinamico2\perifericos.xlsx", index=False)
 
-print(f"Arquivo 'cadeiras' salvo com sucesso! {len(df_cadeiras)} produtos coletados!")
-
-        
-
-
-
+print(f"Arquivo 'perifericos' salvo com sucesso! {len(df_perifericos)} produtos coletados!")
